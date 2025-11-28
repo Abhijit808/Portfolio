@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>abhijit rayarao | terminal portfolio</title>
+
+    <!-- Fonts: JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Icons: FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- CRT Scanline Overlay -->
+    <div class="crt-overlay"></div>
+
+    <!-- Alacritty Window Container -->
+    <div class="alacritty-window">
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="window-controls">
+                <span class="control close"></span>
+                <span class="control minimize"></span>
+                <span class="control maximize"></span>
+            </div>
+            <div class="window-title">painfulpike@linux: ~</div>
+            <div class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                <i class="fas fa-sun"></i>
+            </div>
+        </div>
+
+        <!-- Terminal Content -->
+        <div class="terminal-content" id="terminal">
+
+            <!-- Startup Sequence (Hidden by default, shown via JS) -->
+            <div id="startup-sequence" class="hidden"></div>
+
+            <!-- Main Content Area -->
+            <div id="main-output">
+                <!-- Dynamic content will be injected here -->
+            </div>
+
+            <!-- Scroll Triggers / Sections -->
+            <div id="sections-container">
+                <!-- Projects -->
+                <div class="section-trigger" id="trigger-projects" data-command="ls projects"></div>
+                <div class="terminal-section" id="section-projects"></div>
+
+                <!-- Experience -->
+                <div class="section-trigger" id="trigger-experience" data-command="cat experience.txt"></div>
+                <div class="terminal-section" id="section-experience"></div>
+
+                <!-- Skills -->
+                <div class="section-trigger" id="trigger-skills" data-command="open skills.yml"></div>
+                <div class="terminal-section" id="section-skills"></div>
+
+                <!-- Socials -->
+                <div class="section-trigger" id="trigger-socials" data-command="curl socials.json"></div>
+                <div class="terminal-section" id="section-socials"></div>
+            </div>
+
+            <!-- Sticky Prompt (remains at bottom for now, or we can move it) -->
+            <div class="prompt-line" id="active-prompt">
+                <!-- Powerlevel10k Prompt Structure -->
+                <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                <div class="p10k-arrow os-arrow"></div>
+
+                <div class="p10k-segment dir-icon"></div>
+                <div class="p10k-segment dir-text">~/portfolio</div>
+                <div class="p10k-arrow dir-arrow"></div>
+
+                <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                <div class="p10k-segment git-text">main</div>
+                <div class="p10k-arrow git-arrow"></div>
+
+                <div class="p10k-segment time-icon"><i class="far fa-clock"></i></div>
+                <div class="p10k-segment time-text" id="clock">12:00:00</div>
+                <div class="p10k-arrow time-arrow"></div>
+
+                <div class="command-input">
+                    <span class="cursor">█</span>
+                </div>
+            </div>
+
+            <!-- Footer / Shutdown -->
+            <div class="shutdown-section">
+                <button id="shutdown-btn" class="shutdown-btn">
+                    <i class="fas fa-power-off"></i> System Shutdown
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
