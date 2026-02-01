@@ -1,9 +1,7 @@
 :root {
     /* Powerlevel10k / Monokai Pro inspired Palette */
     --bg-color: #1d1f21;
-    /* Alacritty default-ish dark */
     --window-bg: #0d0f11;
-    /* Slightly darker for window */
     --fg-color: #c5c8c6;
 
     --color-black: #1d1f21;
@@ -18,17 +16,22 @@
     /* P10k Segment Colors */
     --seg-os-bg: #ffffff;
     --seg-os-fg: #000000;
-
     --seg-dir-bg: #81a2be;
     --seg-dir-fg: #000000;
-
     --seg-git-bg: #b5bd68;
     --seg-git-fg: #000000;
-
     --seg-time-bg: #f0c674;
     --seg-time-fg: #000000;
 
     --font-main: 'JetBrains Mono', monospace;
+    --font-static: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Static mode colors */
+    --static-bg: #0d1117;
+    --static-card-bg: #161b22;
+    --static-border: #30363d;
+    --static-text: #c9d1d9;
+    --static-text-muted: #8b949e;
 }
 
 body.light-theme {
@@ -37,10 +40,13 @@ body.light-theme {
     --fg-color: #333333;
     --color-black: #f0f0f0;
     --color-white: #333333;
-
-    /* Adjust P10k colors for light mode if needed, or keep them neon */
     --seg-os-bg: #333;
     --seg-os-fg: #fff;
+    --static-bg: #f6f8fa;
+    --static-card-bg: #ffffff;
+    --static-border: #d0d7de;
+    --static-text: #24292f;
+    --static-text-muted: #57606a;
 }
 
 * {
@@ -49,69 +55,8 @@ body.light-theme {
     padding: 0;
 }
 
-/* ... existing body ... */
-
-.theme-toggle {
-    color: #969896;
-    cursor: pointer;
-    padding: 4px;
-    transition: color 0.2s;
-}
-
-.theme-toggle:hover {
-    color: #fff;
-}
-
-/* Shutdown Section */
-.shutdown-section {
-    margin-top: 40px;
-    margin-bottom: 20px;
-    text-align: center;
-    opacity: 0.7;
-}
-
-.shutdown-btn {
-    background: transparent;
-    border: 1px solid var(--color-red);
-    color: var(--color-red);
-    padding: 8px 16px;
-    font-family: var(--font-main);
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.shutdown-btn:hover {
-    background: var(--color-red);
-    color: #000;
-    box-shadow: 0 0 15px var(--color-red);
-}
-
-/* Spark Particle */
-.spark {
-    position: absolute;
-    pointer-events: none;
-    color: var(--color-yellow);
-    font-weight: bold;
-    font-size: 1.2rem;
-    animation: spark-anim 0.8s forwards;
-}
-
-@keyframes spark-anim {
-    0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translate(var(--tx), var(--ty)) scale(0);
-        opacity: 0;
-    }
-}
-
-
 body {
     background-color: #000;
-    /* Outer void */
     color: var(--fg-color);
     font-family: var(--font-main);
     height: 100vh;
@@ -121,7 +66,44 @@ body {
     overflow: hidden;
 }
 
-/* CRT Overlay */
+/* ========================================
+   BOOT OVERLAY
+   ======================================== */
+.boot-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-color);
+    padding: 30px;
+    overflow-y: auto;
+    z-index: 100;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+}
+
+.boot-overlay.hidden {
+    display: none;
+}
+
+#boot-logs {
+    line-height: 1.6;
+}
+
+#boot-logs .log-line {
+    margin-bottom: 2px;
+    color: var(--fg-color);
+}
+
+#boot-logs .log-ok {
+    color: var(--color-green);
+    font-weight: bold;
+}
+
+/* ========================================
+   CRT OVERLAY
+   ======================================== */
 .crt-overlay {
     position: fixed;
     top: 0;
@@ -137,6 +119,7 @@ body {
     pointer-events: none;
     z-index: 9999;
     animation: flicker 0.15s infinite;
+    transition: opacity 0.3s ease;
 }
 
 @keyframes flicker {
@@ -153,7 +136,14 @@ body {
     }
 }
 
-/* Alacritty Window */
+/* Hide CRT in static mode */
+body.static-mode .crt-overlay {
+    opacity: 0.3;
+}
+
+/* ========================================
+   ALACRITTY WINDOW
+   ======================================== */
 .alacritty-window {
     width: 90vw;
     height: 90vh;
@@ -169,13 +159,14 @@ body {
 
 /* Title Bar */
 .title-bar {
-    height: 32px;
+    height: 36px;
     background-color: #282a2e;
     display: flex;
     align-items: center;
     padding: 0 12px;
     border-bottom: 1px solid #111;
     user-select: none;
+    flex-shrink: 0;
 }
 
 .window-controls {
@@ -187,7 +178,6 @@ body {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    display: inline-block;
 }
 
 .close {
@@ -207,11 +197,54 @@ body {
     text-align: center;
     font-size: 0.85rem;
     color: #969896;
-    margin-right: 52px;
-    /* Balance the controls */
 }
 
-/* Terminal Content */
+.title-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Mode Toggle Button */
+.mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--color-green);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-main);
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-toggle:hover {
+    background: var(--color-cyan);
+    transform: scale(1.05);
+}
+
+.mode-toggle.active-terminal {
+    background: var(--color-magenta);
+}
+
+.theme-toggle {
+    color: #969896;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.theme-toggle:hover {
+    color: #fff;
+}
+
+/* ========================================
+   TERMINAL VIEW STYLES
+   ======================================== */
 .terminal-content {
     flex-grow: 1;
     padding: 16px;
@@ -219,9 +252,10 @@ body {
     font-size: 1rem;
     line-height: 1.5;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Scrollbar styling */
 .terminal-content::-webkit-scrollbar {
     width: 10px;
 }
@@ -233,6 +267,10 @@ body {
 .terminal-content::-webkit-scrollbar-thumb {
     background: #373b41;
     border-radius: 5px;
+}
+
+#terminal-output {
+    flex-grow: 1;
 }
 
 /* Powerlevel10k Prompt */
@@ -260,7 +298,6 @@ body {
     border-left: 12px solid;
 }
 
-/* Segment Colors */
 .os-icon {
     background-color: var(--seg-os-bg);
     color: var(--seg-os-fg);
@@ -322,12 +359,54 @@ body {
     border-left-color: var(--seg-time-bg);
 }
 
-/* Cursor */
+/* CPU Segment */
+.cpu-icon {
+    background-color: #cc6666;
+    color: #000;
+    margin-left: -12px;
+    padding-left: 16px;
+}
+
+.cpu-text {
+    background-color: #cc6666;
+    color: #000;
+    padding-left: 0;
+    font-size: 0.85rem;
+}
+
+.cpu-arrow {
+    border-left-color: #cc6666;
+}
+
+/* Uptime Segment */
+.uptime-icon {
+    background-color: #b294bb;
+    color: #000;
+    margin-left: -12px;
+    padding-left: 16px;
+}
+
+.uptime-text {
+    background-color: #b294bb;
+    color: #000;
+    padding-left: 0;
+    font-size: 0.85rem;
+}
+
+.uptime-arrow {
+    border-left-color: #b294bb;
+}
+
 .command-input {
     margin-left: 10px;
     color: var(--fg-color);
     display: flex;
     align-items: center;
+}
+
+.input-text {
+    color: var(--fg-color);
+    white-space: pre;
 }
 
 .cursor {
@@ -351,8 +430,48 @@ body {
     }
 }
 
-.hidden {
-    display: none;
+/* Status Bar */
+.status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.9);
+    border-top: 1px solid #333;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 4px 16px;
+    z-index: 100;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-label {
+    color: #666;
+}
+
+.status-value {
+    color: var(--color-green);
+}
+
+.status-spacer {
+    flex-grow: 1;
+}
+
+.mute-toggle {
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.mute-toggle:hover {
+    color: var(--color-cyan);
 }
 
 /* Boot Logs */
@@ -378,7 +497,6 @@ body {
     color: var(--color-cyan);
     margin-bottom: 8px;
     min-height: 1.5em;
-    /* Prevent layout shift */
 }
 
 .intro-line:nth-child(2) {
@@ -387,26 +505,30 @@ body {
     font-weight: normal;
 }
 
-/* Sections General */
-#sections-container {
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-    padding-bottom: 100px;
+.intro-hint {
+    margin: 20px 0;
+    color: #666;
 }
 
-.terminal-section {
-    margin-top: 10px;
-    margin-bottom: 20px;
+.hint-cmd {
+    color: var(--color-green);
+    background: #333;
+    padding: 2px 8px;
+    border-radius: 3px;
 }
 
-.section-trigger {
-    height: 1px;
-    /* Invisible trigger */
-    margin-bottom: 10px;
+/* Terminal Output Styles */
+.terminal-output {
+    margin: 5px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
-/* Projects Grid */
+.terminal-output.error {
+    color: var(--color-red);
+}
+
+/* Projects Grid (Terminal Style) */
 .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -421,6 +543,7 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     background: rgba(255, 255, 255, 0.02);
+    position: relative;
 }
 
 .project-card:hover {
@@ -438,6 +561,7 @@ body {
 .project-name {
     color: var(--color-yellow);
     font-weight: bold;
+    display: inline;
 }
 
 .project-desc {
@@ -446,7 +570,7 @@ body {
     margin-top: 8px;
 }
 
-/* Experience Timeline */
+/* Timeline (Terminal Style) */
 .timeline {
     border-left: 2px solid #333;
     margin-left: 10px;
@@ -486,6 +610,13 @@ body {
     font-size: 0.95rem;
 }
 
+.timeline-desc {
+    color: #888;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
 /* Skills Tags */
 .skills-container {
     display: flex;
@@ -500,6 +631,7 @@ body {
     border-radius: 15px;
     font-size: 0.9rem;
     border: 1px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .skill-tag:hover {
@@ -507,11 +639,615 @@ body {
     color: var(--color-cyan);
 }
 
-/* YAML Style for Skills */
-.yaml-key {
-    color: var(--color-red);
+/* ========================================
+   STATIC VIEW STYLES
+   ======================================== */
+.static-content {
+    flex-grow: 1;
+    padding: 40px;
+    overflow-y: auto;
+    font-family: var(--font-static);
+    background: var(--static-bg);
+    color: var(--static-text);
 }
 
-.yaml-val {
+.static-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.static-content::-webkit-scrollbar-thumb {
+    background: var(--static-border);
+    border-radius: 5px;
+}
+
+/* Hero Section */
+.static-hero {
+    text-align: center;
+    padding: 60px 20px;
+    margin-bottom: 60px;
+}
+
+.hero-name {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--color-cyan);
+    margin-bottom: 10px;
+    font-family: var(--font-main);
+}
+
+.hero-role {
+    font-size: 1.5rem;
+    color: var(--color-magenta);
+    margin-bottom: 20px;
+}
+
+.hero-intro {
+    font-size: 1.1rem;
+    color: var(--static-text-muted);
+    max-width: 600px;
+    margin: 0 auto 30px;
+    line-height: 1.7;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-family: var(--font-main);
+}
+
+.btn-primary {
+    background: var(--color-green);
+    color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--color-cyan);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--static-text);
+    border: 1px solid var(--static-border);
+}
+
+.btn-secondary:hover {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+}
+
+/* Static Sections */
+.static-section {
+    margin-bottom: 60px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: var(--color-cyan);
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-main);
+}
+
+.section-title i {
+    color: var(--color-blue);
+}
+
+/* Static Grid */
+.static-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.static-card {
+    background: var(--static-card-bg);
+    border: 1px solid var(--static-border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.3s ease;
+}
+
+.static-card:hover {
+    border-color: var(--color-green);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.card-header .folder-icon {
+    font-size: 1.5rem;
+}
+
+.card-header .project-name {
+    font-size: 1.2rem;
+    font-family: var(--font-main);
+}
+
+.project-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.tech-tag {
+    background: rgba(139, 190, 183, 0.1);
+    color: var(--color-cyan);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: var(--font-main);
+}
+
+.project-links {
+    margin-top: 16px;
+}
+
+.project-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--static-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.project-link:hover {
+    color: var(--color-cyan);
+}
+
+/* Static Timeline */
+.static-timeline {
+    border-left: 3px solid var(--static-border);
+    padding-left: 30px;
+    margin-left: 20px;
+}
+
+.static-timeline .timeline-item {
+    background: var(--static-card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.static-timeline .timeline-item::before {
+    background: var(--color-green);
+    width: 14px;
+    height: 14px;
+    left: -38px;
+    border: 3px solid var(--static-bg);
+}
+
+/* Skills Grid */
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+}
+
+.skill-category {
+    background: var(--static-card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--static-border);
+}
+
+.skill-category-title {
     color: var(--color-yellow);
+    font-size: 1rem;
+    margin-bottom: 12px;
+    font-family: var(--font-main);
+}
+
+/* Contact Grid */
+.contact-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.contact-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 30px 40px;
+    background: var(--static-card-bg);
+    border: 1px solid var(--static-border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--static-text);
+    transition: all 0.3s ease;
+}
+
+.contact-card i {
+    font-size: 2rem;
+    color: var(--color-blue);
+}
+
+.contact-card:hover {
+    border-color: var(--color-cyan);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.contact-card:hover i {
+    color: var(--color-cyan);
+}
+
+/* Static Footer */
+.static-footer {
+    text-align: center;
+    padding: 40px 20px;
+    border-top: 1px solid var(--static-border);
+    margin-top: 40px;
+    color: var(--static-text-muted);
+}
+
+.static-footer .shutdown-btn {
+    margin-top: 20px;
+}
+
+/* Shutdown Button */
+.shutdown-btn {
+    background: transparent;
+    border: 1px solid var(--color-red);
+    color: var(--color-red);
+    padding: 8px 16px;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+}
+
+.shutdown-btn:hover {
+    background: var(--color-red);
+    color: #000;
+    box-shadow: 0 0 15px var(--color-red);
+}
+
+/* Spark Particle */
+.spark {
+    position: absolute;
+    pointer-events: none;
+    color: var(--color-yellow);
+    font-weight: bold;
+    font-size: 1.2rem;
+    animation: spark-anim 0.8s forwards;
+}
+
+@keyframes spark-anim {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Hidden */
+.hidden {
+    display: none !important;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+    .alacritty-window {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .title-bar {
+        height: 44px;
+    }
+
+    .mode-toggle span {
+        display: none;
+    }
+
+    .window-title {
+        font-size: 0.75rem;
+    }
+
+    .static-hero {
+        padding: 40px 10px;
+    }
+
+    .hero-name {
+        font-size: 2rem;
+    }
+
+    .hero-cta {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .static-content {
+        padding: 20px;
+    }
+
+    .prompt-line {
+        font-size: 0.85rem;
+    }
+}
+
+/* ========================================
+   STATIC TERMINAL VIEW STYLING
+   ======================================== */
+.static-terminal-output {
+    padding: 30px;
+}
+
+.intro-section {
+    padding: 20px 0 40px;
+    border-bottom: none;
+    margin-bottom: 20px;
+}
+
+.intro-greeting {
+    font-size: 1.5rem;
+    color: var(--fg-color);
+    margin-bottom: 8px;
+}
+
+.intro-greeting .hero-name {
+    color: var(--color-green);
+    font-weight: bold;
+}
+
+.intro-stack {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.static-cmd-block {
+    margin-bottom: 40px;
+}
+
+.static-prompt {
+    margin-bottom: 20px;
+}
+
+.static-prompt .command-input {
+    margin-left: 8px;
+}
+
+.cmd-text {
+    color: var(--fg-color);
+    font-family: var(--font-main);
+}
+
+.static-output {
+    margin-left: 0;
+    padding: 0;
+    background-color: transparent;
+    border-left: none;
+    margin-top: 15px;
+}
+
+/* Minimal Project Cards */
+.static-output .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.static-output .project-card {
+    background-color: transparent;
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.static-output .project-card:hover {
+    border-color: #555;
+    transform: none;
+}
+
+.static-output .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.static-output .folder-icon {
+    color: var(--color-yellow);
+    font-size: 0.9rem;
+}
+
+.static-output .project-name {
+    color: var(--color-cyan);
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.static-output .project-desc {
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.static-output .project-tech,
+.static-output .project-links {
+    display: none;
+}
+
+/* Timeline for experience */
+.static-output .timeline {
+    border-left: 2px solid #333;
+    margin-left: 10px;
+    padding-left: 25px;
+}
+
+.static-output .timeline-item {
+    position: relative;
+    margin-bottom: 25px;
+    padding-left: 0;
+}
+
+.static-output .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -31px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--color-blue);
+    border-radius: 50%;
+}
+
+.static-output .timeline-date {
+    color: #555;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+}
+
+.static-output .timeline-title {
+    color: var(--color-green);
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.static-output .timeline-company {
+    color: var(--color-blue);
+    font-size: 0.9rem;
+}
+
+.static-output .timeline-desc {
+    color: #666;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* Skills - minimal */
+.static-output .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.static-output .skill-category {
+    margin-bottom: 10px;
+}
+
+.static-output .skill-category-title {
+    color: var(--color-yellow);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.static-output .skill-tag {
+    background-color: transparent;
+    border: 1px solid #444;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+}
+
+/* Contact links minimal */
+.static-output .contact-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.static-output .contact-card {
+    background-color: transparent;
+    border: 1px solid #444;
+    padding: 10px 20px;
+}
+
+.static-output .contact-card:hover {
+    border-color: var(--color-cyan);
+}
+
+/* Resume download */
+.resume-output {
+    background-color: transparent;
+    border-left: none;
+}
+
+.wget-output {
+    line-height: 2;
+}
+
+.resume-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: var(--color-green);
+    color: #000;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+}
+
+.resume-download-btn:hover {
+    background-color: var(--color-cyan);
+}
+
+.footer-block {
+    border-top: 1px solid #333;
+    padding-top: 20px;
+    margin-top: 40px;
+}
+
+.footer-text {
+    margin-top: 15px;
+    margin-left: 20px;
+}
+
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+    .crt-overlay {
+        animation: none;
+    }
+
+    .cursor {
+        animation: none;
+        opacity: 1;
+    }
+
+    .project-card,
+    .static-card,
+    .contact-card {
+        transition: none;
+    }
 }

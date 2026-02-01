@@ -4,12 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>abhijit rayarao | terminal portfolio</title>
+    <title>Abhijit Rayarao | Developer Portfolio</title>
+    <meta name="description"
+        content="Abhijit Rayarao - Full Stack Developer specializing in React, Next.js, AI/ML, and Computer Vision.">
+    <meta name="keywords" content="Abhijit Rayarao, Developer, React, Next.js, AI, Portfolio">
+    <meta name="author" content="Abhijit Rayarao">
 
-    <!-- Fonts: JetBrains Mono -->
+    <!-- Fonts: JetBrains Mono + Inter for Static -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
 
     <!-- Icons: FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,8 +25,7 @@
 </head>
 
 <body>
-
-    <!-- CRT Scanline Overlay -->
+    <!-- CRT Scanline Overlay (for Terminal mode) -->
     <div class="crt-overlay"></div>
 
     <!-- Alacritty Window Container -->
@@ -32,75 +37,221 @@
                 <span class="control minimize"></span>
                 <span class="control maximize"></span>
             </div>
-            <div class="window-title">painfulpike@linux: ~</div>
-            <div class="theme-toggle" id="theme-toggle" title="Toggle Theme">
-                <i class="fas fa-sun"></i>
+            <div class="window-title">abhijit@linux: ~/portfolio</div>
+            <div class="title-bar-actions">
+                <button class="mode-toggle" id="mode-toggle" title="Switch Mode (Ctrl+Shift+T)">
+                    <i class="fas fa-terminal"></i> <span>Terminal</span>
+                </button>
+                <div class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                    <i class="fas fa-sun"></i>
+                </div>
             </div>
         </div>
 
-        <!-- Terminal Content -->
-        <div class="terminal-content" id="terminal">
+        <!-- ========================================
+             BOOT OVERLAY (Shows on page load)
+             ======================================== -->
+        <div class="boot-overlay" id="boot-overlay">
+            <div id="boot-logs"></div>
+        </div>
 
-            <!-- Startup Sequence (Hidden by default, shown via JS) -->
+        <!-- ========================================
+             TERMINAL VIEW (Interactive Mode)
+             ======================================== -->
+        <div class="terminal-content hidden" id="terminal-view">
+            <!-- Startup Sequence -->
             <div id="startup-sequence" class="hidden"></div>
 
-            <!-- Main Content Area -->
-            <div id="main-output">
-                <!-- Dynamic content will be injected here -->
-            </div>
+            <!-- Main Terminal Output -->
+            <div id="terminal-output"></div>
 
-            <!-- Scroll Triggers / Sections -->
-            <div id="sections-container">
-                <!-- Projects -->
-                <div class="section-trigger" id="trigger-projects" data-command="ls projects"></div>
-                <div class="terminal-section" id="section-projects"></div>
-
-                <!-- Experience -->
-                <div class="section-trigger" id="trigger-experience" data-command="cat experience.txt"></div>
-                <div class="terminal-section" id="section-experience"></div>
-
-                <!-- Skills -->
-                <div class="section-trigger" id="trigger-skills" data-command="open skills.yml"></div>
-                <div class="terminal-section" id="section-skills"></div>
-
-                <!-- Socials -->
-                <div class="section-trigger" id="trigger-socials" data-command="curl socials.json"></div>
-                <div class="terminal-section" id="section-socials"></div>
-            </div>
-
-            <!-- Sticky Prompt (remains at bottom for now, or we can move it) -->
+            <!-- Command Input Line -->
             <div class="prompt-line" id="active-prompt">
-                <!-- Powerlevel10k Prompt Structure -->
                 <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
                 <div class="p10k-arrow os-arrow"></div>
-
-                <div class="p10k-segment dir-icon"></div>
+                <div class="p10k-segment dir-icon"></div>
                 <div class="p10k-segment dir-text">~/portfolio</div>
                 <div class="p10k-arrow dir-arrow"></div>
-
                 <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
                 <div class="p10k-segment git-text">main</div>
                 <div class="p10k-arrow git-arrow"></div>
-
+                <div class="p10k-segment cpu-icon"><i class="fas fa-microchip"></i></div>
+                <div class="p10k-segment cpu-text" id="prompt-cpu">12%</div>
+                <div class="p10k-arrow cpu-arrow"></div>
+                <div class="p10k-segment uptime-icon"><i class="fas fa-hourglass-half"></i></div>
+                <div class="p10k-segment uptime-text" id="prompt-uptime">0:00</div>
+                <div class="p10k-arrow uptime-arrow"></div>
                 <div class="p10k-segment time-icon"><i class="far fa-clock"></i></div>
                 <div class="p10k-segment time-text" id="clock">12:00:00</div>
                 <div class="p10k-arrow time-arrow"></div>
-
                 <div class="command-input">
+                    <span class="input-text" id="input-text"></span>
                     <span class="cursor">█</span>
                 </div>
             </div>
 
-            <!-- Footer / Shutdown -->
-            <div class="shutdown-section">
-                <button id="shutdown-btn" class="shutdown-btn">
-                    <i class="fas fa-power-off"></i> System Shutdown
-                </button>
-            </div>
+            <!-- Status Bar -->
+            <!-- <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">CPU:</span>
+                    <span class="status-value" id="cpu-stat">12%</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">MEM:</span>
+                    <span class="status-value" id="mem-stat">2.1G</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">UPTIME:</span>
+                    <span class="status-value" id="uptime-stat">0:00</span>
+                </div>
+                <div class="status-spacer"></div>
+                <div class="mute-toggle" id="mute-toggle" title="Toggle Sound">
+                    <i class="fas fa-volume-up"></i>
+                </div>
+            </div> -->
+        </div>
 
+        <!-- ========================================
+             STATIC VIEW (Non-Technical Mode)
+             ======================================== -->
+        <div class="terminal-content" id="static-view">
+            <!-- Static Terminal Output - No interactivity, just scrollable content -->
+            <div class="static-terminal-output">
+
+                <!-- Intro Section -->
+                <div class="intro-section">
+                    <div class="intro-greeting">hi, i'm <span class="hero-name">abhijit rayarao</span></div>
+                    <div class="intro-stack hero-role">full-stack developer • react • next.js • mern • webRTC • ai</div>
+                </div>
+
+                <!-- ls projects output -->
+                <div class="static-cmd-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input"><span class="cmd-text">ls projects</span></div>
+                    </div>
+                    <div class="static-output" id="static-projects-output">
+                        <div class="projects-grid" id="static-projects">
+                            <!-- Populated by JS from data.json -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- cat experience.txt output -->
+                <div class="static-cmd-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input"><span class="cmd-text">cat experience.txt</span></div>
+                    </div>
+                    <div class="static-output" id="static-experience">
+                        <div class="timeline">
+                            <!-- Populated by JS from data.json -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- open skills.yml output -->
+                <div class="static-cmd-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input"><span class="cmd-text">cat skills.yml</span></div>
+                    </div>
+                    <div class="static-output" id="static-skills">
+                        <div class="skills-grid">
+                            <!-- Populated by JS from data.json -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- curl socials.json output -->
+                <div class="static-cmd-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input"><span class="cmd-text">curl socials.json</span></div>
+                    </div>
+                    <div class="static-output" id="static-contact">
+                        <div class="contact-grid">
+                            <!-- Populated by JS from data.json -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- wget resume.pdf -->
+                <div class="static-cmd-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input"><span class="cmd-text">wget resume.pdf</span></div>
+                    </div>
+                    <div class="static-output resume-output">
+                        <div class="wget-output">
+                            <span style="color: #888">Saving to: 'resume.pdf'</span><br>
+                            <a href="Resume.pdf" download class="resume-download-btn">
+                                <i class="fas fa-download"></i> Download resume.pdf
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with shutdown -->
+                <div class="static-cmd-block footer-block">
+                    <div class="prompt-line static-prompt">
+                        <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
+                        <div class="p10k-arrow os-arrow"></div>
+                        <div class="p10k-segment dir-text">~/portfolio</div>
+                        <div class="p10k-arrow dir-arrow"></div>
+                        <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
+                        <div class="p10k-segment git-text">main</div>
+                        <div class="p10k-arrow git-arrow"></div>
+                        <div class="command-input">
+                            <span class="cursor">█</span>
+                        </div>
+                    </div>
+                    <div class="footer-text">
+                        <span style="color: #666">© 2024 Abhijit Rayarao | </span>
+                        <button class="shutdown-btn" id="static-shutdown-btn">
+                            <i class="fas fa-power-off"></i> shutdown -h now
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Scripts (order matters) -->
+    <script src="mode-controller.js"></script>
+    <script src="terminal.js"></script>
+    <script src="commands.js"></script>
+    <script src="effects.js"></script>
     <script src="script.js"></script>
 </body>
 

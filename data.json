@@ -1,0 +1,140 @@
+{
+    "profile": {
+        "name": "Abhijit Rayarao",
+        "role": "Software Engineer & Data Science Student",
+        "email": "abhijitrayarao@gmail.com",
+        "phone": "+91 9581176554",
+        "intro": "Building production-grade applications with NestJS, Next.js, and cloud technologies. Currently pursuing M.Sc in Data Science at IIIT Hyderabad.",
+        "location": "Hyderabad, India"
+    },
+    "education": [
+        {
+            "institution": "International Institute of Information Technology Hyderabad",
+            "degree": "M.Sc in Data Science",
+            "gpa": "8.4/10",
+            "period": "July 2024 – Present",
+            "location": "Hyderabad, Telangana"
+        },
+        {
+            "institution": "Vignana Bharathi Institute of Technology",
+            "degree": "B.Tech in Computer Science and Business Systems",
+            "gpa": "7.28/10",
+            "period": "June 2020 – June 2024",
+            "location": "Hyderabad, Telangana"
+        }
+    ],
+    "experience": [
+        {
+            "company": "Homeground Analytics",
+            "title": "Software Engineer Intern",
+            "period": "October 2025 – Present",
+            "location": "Hyderabad, India",
+            "highlights": [
+                "Developed and maintained production-grade applications using NestJS and Next.js in a shared monorepo architecture.",
+                "Built 20+ scalable REST APIs and server-side rendered frontend features, improving page load performance by 30–40% and SEO metrics by 2x.",
+                "Containerized services using Docker and published images to Docker Hub for consistent deployments."
+            ]
+        }
+    ],
+    "projects": [
+        {
+            "name": "QueryMaster",
+            "description": "Full-stack SQL learning platform with interactive, LeetCode-style challenges",
+            "tech": [
+                "NestJS",
+                "SvelteKit",
+                "Prisma",
+                "Docker",
+                "GCP"
+            ],
+            "highlights": [
+                "Adopted a monorepo architecture with shared types, schemas, and utilities.",
+                "Used Prisma ORM for type-safe schema modeling, queries, and migrations.",
+                "Integrated Monaco Editor for interactive SQL challenges from schema design to query optimization.",
+                "Containerized and deployed using Docker, Docker Hub, and Google Cloud Run."
+            ],
+            "link": "https://github.com/Abhijit808/sqlEditor"
+        },
+        {
+            "name": "FeatureLab",
+            "description": "End-to-end ML platform for feature engineering experimentation",
+            "tech": [
+                "Python",
+                "Pandas",
+                "scikit-learn",
+                "Docker",
+                "Cloud Run"
+            ],
+            "highlights": [
+                "Designed a platform where users select curated datasets and establish baseline model performance.",
+                "Built a sandboxed, notebook-style feature engineering playground for custom transformation logic.",
+                "Executed user-defined feature pipelines in isolated containerized training jobs.",
+                "Provided objective feedback via metric deltas against baseline performance."
+            ],
+            "link": "https://github.com/Abhijit808/featurelab"
+        }
+    ],
+    "skills": {
+        "languages": [
+            "Java",
+            "Python",
+            "JavaScript",
+            "TypeScript",
+            "SQL"
+        ],
+        "frameworks": [
+            "Spring Boot",
+            "Node.js",
+            "Express",
+            "React",
+            "Next.js",
+            "FastAPI",
+            "NestJS"
+        ],
+        "databases": [
+            "PostgreSQL",
+            "MySQL",
+            "Redis"
+        ],
+        "devtools": [
+            "Docker",
+            "Git/GitHub",
+            "Google Cloud Run",
+            "Prisma",
+            "JWT"
+        ],
+        "system_design": [
+            "RESTful APIs",
+            "Microservices",
+            "Authentication",
+            "Scalability",
+            "Distributed Systems",
+            "Caching",
+            "Queues"
+        ],
+        "ml_data": [
+            "Pandas",
+            "scikit-learn"
+        ]
+    },
+    "socials": [
+        {
+            "name": "GitHub",
+            "link": "https://github.com/Abhijit808",
+            "icon": "fab fa-github",
+            "username": "abhijitrayarao"
+        },
+        {
+            "name": "LinkedIn",
+            "link": "https://linkedin.com/in/abhijitrayarao",
+            "icon": "fab fa-linkedin",
+            "username": "abhijitrayarao"
+        },
+        {
+            "name": "Email",
+            "link": "mailto:abhijitrayarao@gmail.com",
+            "icon": "fas fa-envelope",
+            "username": "abhijitrayarao@gmail.com"
+        }
+    ]
+}

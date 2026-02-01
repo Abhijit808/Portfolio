@@ -1,20 +1,107 @@
-const terminal = document.getElementById('terminal');
-const startupSequence = document.getElementById('startup-sequence');
-const mainOutput = document.getElementById('main-output');
-const activePrompt = document.getElementById('active-prompt');
+/**
+ * Main Script - Portfolio Orchestrator
+ * Coordinates Terminal and Static modes
+ * 
+ * To update portfolio content, edit data.json - no need to touch this file!
+ */
 
-// Boot logs
-const bootLogs = [
-    { text: "[  OK  ] Started User Manager.", delay: 100 },
-    { text: "[  OK  ] Reached target Graphical Interface.", delay: 150 },
-    { text: "[  OK  ] Found portfolio configuration.", delay: 200 },
-    { text: "[  OK  ] Mounted /home/painfulpike/portfolio.", delay: 300 },
-    { text: "Loading Zsh...", delay: 600 },
-    { text: "Initializing Powerlevel10k...", delay: 800 },
-    { text: "Done.", delay: 1000 }
-];
+// ========================================
+// DATA - Loaded from data.json
+// ========================================
+let portfolioData = null;
 
-// Typing effect utility
+const loadPortfolioData = async () => {
+    try {
+        const response = await fetch('data.json');
+        const data = await response.json();
+
+        // Transform data.json format to match expected format
+        portfolioData = {
+            profile: data.profile,
+            projects: data.projects.map(p => ({
+                name: p.name,
+                desc: p.description,
+                link: p.link,
+                tech: p.tech,
+                highlights: p.highlights
+            })),
+            experience: data.experience.map(e => ({
+                date: e.period,
+                title: e.title,
+                company: e.company,
+                desc: e.highlights.join(' '),
+                highlights: e.highlights,
+                location: e.location
+            })),
+            education: data.education,
+            skills: data.skills,
+            socials: data.socials
+        };
+
+        console.log('Portfolio data loaded successfully');
+        return portfolioData;
+    } catch (error) {
+        console.error('Failed to load data.json:', error);
+        // Fallback data
+        portfolioData = {
+            profile: { name: 'Abhijit Rayarao', role: 'Software Engineer', intro: 'Building production applications.' },
+            projects: [],
+            experience: [],
+            skills: { languages: [], frameworks: [], databases: [] },
+            socials: []
+        };
+        return portfolioData;
+    }
+};
+
+// ========================================
+// BOOT SEQUENCES
+// ========================================
+const bootSequences = {
+    arch: [
+        { text: ":: Synchronizing package databases...", delay: 100 },
+        { text: "[  OK  ] Started systemd-journald.service.", delay: 80 },
+        { text: "[  OK  ] Started systemd-udevd.service.", delay: 100 },
+        { text: "[  OK  ] Reached target Local File Systems.", delay: 150 },
+        { text: "[  OK  ] Started User Manager for UID 1000.", delay: 200 },
+        { text: "[  OK  ] Started Alacritty Terminal.", delay: 150 },
+        { text: "", delay: 100 },
+        { text: "Arch Linux 6.7.0-arch1-1 (tty1)", delay: 300 },
+        { text: "", delay: 100 },
+        { text: "Loading Zsh...", delay: 400 },
+        { text: "Initializing Powerlevel10k...", delay: 500 },
+        { text: "Done.", delay: 200 }
+    ],
+    ubuntu: [
+        { text: "[    0.000000] Linux version 6.5.0-generic", delay: 50 },
+        { text: "[  OK  ] Started Network Manager.", delay: 120 },
+        { text: "[  OK  ] Started OpenSSH server.", delay: 100 },
+        { text: "[  OK  ] Reached target Graphical Interface.", delay: 150 },
+        { text: "", delay: 100 },
+        { text: "Ubuntu 24.04 LTS abhijit-pc tty1", delay: 300 },
+        { text: "", delay: 100 },
+        { text: "Loading Zsh...", delay: 400 },
+        { text: "Initializing Powerlevel10k...", delay: 500 },
+        { text: "Done.", delay: 200 }
+    ],
+    minimal: [
+        { text: "init: starting system...", delay: 100 },
+        { text: "init: mounting filesystems... [OK]", delay: 150 },
+        { text: "init: network... [OK]", delay: 120 },
+        { text: "init: starting user services...", delay: 200 },
+        { text: "", delay: 100 },
+        { text: "Welcome to portfolio-os v2.0", delay: 300 },
+        { text: "", delay: 100 },
+        { text: "Loading shell...", delay: 400 },
+        { text: "Done.", delay: 200 }
+    ]
+};
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 const typeText = async (element, text, speed = 30) => {
     return new Promise(resolve => {
         let i = 0;
@@ -22,8 +109,6 @@ const typeText = async (element, text, speed = 30) => {
             if (i < text.length) {
                 element.textContent += text.charAt(i);
                 i++;
-                // Auto scroll to bottom
-                terminal.scrollTop = terminal.scrollHeight;
             } else {
                 clearInterval(interval);
                 resolve();
@@ -32,51 +117,80 @@ const typeText = async (element, text, speed = 30) => {
     });
 };
 
-// Startup Sequence
-const runStartup = async () => {
+// ========================================
+// TERMINAL MODE FUNCTIONS
+// ========================================
+let terminalInstance = null;
+let startTime = Date.now();
+let commandHistory = [];
+let historyIndex = -1;
+
+const runBootSequence = async () => {
+    const startupSequence = document.getElementById('startup-sequence');
+    const terminalOutput = document.getElementById('terminal-output');
+    const activePrompt = document.getElementById('active-prompt');
+    const terminalView = document.getElementById('terminal-view');
+
+    if (!startupSequence || !terminalView) return;
+
+    // Hide prompt during boot
+    if (activePrompt) activePrompt.style.display = 'none';
+
+    // Clear and show startup
+    startupSequence.innerHTML = '';
     startupSequence.classList.remove('hidden');
-    activePrompt.style.display = 'none'; // Hide prompt initially
 
-    for (const log of bootLogs) {
-        const p = document.createElement('div');
-        p.className = 'log-line';
+    // Pick random boot sequence
+    const types = Object.keys(bootSequences);
+    const selectedType = types[Math.floor(Math.random() * types.length)];
+    const sequence = bootSequences[selectedType];
 
-        // Colorize "[ OK ]"
-        if (log.text.includes("[  OK  ]")) {
-            p.innerHTML = `<span class="log-ok">[  OK  ]</span> ${log.text.replace("[  OK  ] ", "")}`;
+    // Display boot logs
+    for (const log of sequence) {
+        const line = document.createElement('div');
+        line.className = 'log-line';
+
+        if (log.text.includes('[  OK  ]')) {
+            line.innerHTML = `<span class="log-ok">[  OK  ]</span>${log.text.replace('[  OK  ]', '')}`;
+        } else if (log.text.includes('[OK]')) {
+            line.innerHTML = log.text.replace('[OK]', '<span class="log-ok">[OK]</span>');
         } else {
-            p.textContent = log.text;
+            line.textContent = log.text;
         }
 
-        startupSequence.appendChild(p);
-        terminal.scrollTop = terminal.scrollHeight;
-        await new Promise(r => setTimeout(r, log.delay));
+        startupSequence.appendChild(line);
+        terminalView.scrollTop = terminalView.scrollHeight;
+        await sleep(log.delay);
     }
 
-    // Clear screen effect
-    await new Promise(r => setTimeout(r, 500));
+    // Clear boot and show intro
+    await sleep(500);
     startupSequence.innerHTML = '';
     startupSequence.classList.add('hidden');
 
     // Show prompt
-    activePrompt.style.display = 'flex';
+    if (activePrompt) activePrompt.style.display = 'flex';
 
-    // Start Intro
-    runIntro();
+    // Run intro
+    await runTerminalIntro();
+
+    // Initialize terminal input
+    initTerminalInput();
 };
 
-const runIntro = async () => {
-    // Simulate typing the intro command? Or just showing the output?
-    // Let's simulate typing "cat intro.txt" or just showing the header.
-    // User requested: "My intro appears as if 'typed out'"
+const runTerminalIntro = async () => {
+    const terminalOutput = document.getElementById('terminal-output');
+    if (!terminalOutput) return;
+
+    terminalOutput.innerHTML = '';
 
     const introContainer = document.createElement('div');
     introContainer.className = 'intro-section';
-    mainOutput.appendChild(introContainer);
+    terminalOutput.appendChild(introContainer);
 
     const lines = [
-        "hi, i'm abhijit rayarao",
-        "full-stack developer • react • next.js • mern • webRTC • ai"
+        `hi, i'm ${portfolioData.profile.name.toLowerCase()}`,
+        "full-stack developer • react • next.js • ai/ml • webrtc"
     ];
 
     for (const line of lines) {
@@ -84,276 +198,618 @@ const runIntro = async () => {
         p.className = 'intro-line';
         introContainer.appendChild(p);
         await typeText(p, line, 50);
-        await new Promise(r => setTimeout(r, 300));
+        await sleep(300);
     }
 
-    // Add a blank line
-    mainOutput.appendChild(document.createElement('br'));
+    // Add hint
+    const hint = document.createElement('div');
+    hint.className = 'intro-hint';
+    hint.innerHTML = '<span class="hint-text">Type <span class="hint-cmd">help</span> to see available commands</span>';
+    terminalOutput.appendChild(hint);
 
-    // Start observing sections
-    startObserving();
+    terminalOutput.appendChild(document.createElement('br'));
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Clock functionality
-    const updateClock = () => {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
-        document.getElementById('clock').textContent = timeString;
-    };
-    setInterval(updateClock, 1000);
-    updateClock();
+const initTerminalInput = () => {
+    const terminalView = document.getElementById('terminal-view');
+    const inputText = document.getElementById('input-text');
 
-    runStartup();
-});
+    if (!terminalView || !inputText) return;
 
-// Data
-const projectsData = [
-    { name: "github-mcp-server", desc: "Model Context Protocol server for GitHub", link: "https://github.com/Abhijit808/github-mcp-server" },
-    { name: "Edupath", desc: "AI-powered education platform", link: "https://github.com/Abhijit8229/Edupath" },
-    { name: "entitlements-app", desc: "GitHub App for managing repo entitlements", link: "https://github.com/Abhijit808/entitlements-app" },
-    { name: "spark-template", desc: "Starter template for Spark projects", link: "https://github.com/Abhijit808/spark-template" }
-];
+    // Focus terminal
+    terminalView.tabIndex = 0;
+    terminalView.focus();
 
-const experienceData = [
-    { date: "2024 - Present", title: "AI Intern", company: "HomeGround Sports Analytics", desc: "Building AI-based cricket coaching tools using Computer Vision." },
-    { date: "2022", title: "Full Stack Developer", company: "Freelance", desc: "Developed web applications using MERN stack." }
-];
+    let currentInput = '';
 
-const skillsData = [
-    "JavaScript", "TypeScript", "React", "Next.js", "Node.js", "Python", "Computer Vision", "AI/ML", "TailwindCSS", "WebRTC"
-];
+    terminalView.addEventListener('keydown', async (e) => {
+        // Ignore if not in terminal mode
+        if (!terminalView.classList.contains('hidden') === false) return;
 
-// Socials Data
-const socialsData = [
-    { name: "GitHub (Abhijit808)", link: "https://github.com/Abhijit808", icon: "fab fa-github" },
-    { name: "GitHub (Abhijit8229)", link: "https://github.com/Abhijit8229", icon: "fab fa-github-alt" },
-    { name: "LinkedIn", link: "https://www.linkedin.com/in/abhijit-rayarao-8b6b6b1b6/", icon: "fab fa-linkedin" }
-];
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const command = currentInput.trim();
+            if (command) {
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+                await executeCommand(command);
+            }
+            currentInput = '';
+            inputText.textContent = '';
+        } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            currentInput = currentInput.slice(0, -1);
+            inputText.textContent = currentInput;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                currentInput = commandHistory[historyIndex] || '';
+                inputText.textContent = currentInput;
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                currentInput = commandHistory[historyIndex] || '';
+            } else {
+                historyIndex = commandHistory.length;
+                currentInput = '';
+            }
+            inputText.textContent = currentInput;
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            // Autocomplete
+            const completions = ['help', 'clear', 'whoami', 'ls', 'cd', 'cat', 'neofetch', 'wget', 'journalctl', 'sudo'];
+            const match = completions.find(c => c.startsWith(currentInput) && c !== currentInput);
+            if (match) {
+                currentInput = match + ' ';
+                inputText.textContent = currentInput;
+            }
+        } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+            currentInput += e.key;
+            inputText.textContent = currentInput;
+        }
 
-// Command Execution Logic
-const executeCommand = async (command, sectionId, triggerElement) => {
-    // Create Prompt Line
-    const promptLine = document.createElement('div');
-    promptLine.className = 'prompt-line executed-command';
-    promptLine.innerHTML = `
+        terminalView.scrollTop = terminalView.scrollHeight;
+    });
+
+    // Click to focus
+    terminalView.addEventListener('click', () => terminalView.focus());
+};
+
+const executeCommand = async (command) => {
+    const terminalOutput = document.getElementById('terminal-output');
+    const terminalView = document.getElementById('terminal-view');
+
+    // Add executed command prompt
+    const promptLine = createPromptLine(command);
+    terminalOutput.appendChild(promptLine);
+
+    // Execute command
+    const result = await processCommand(command);
+
+    if (result) {
+        const output = document.createElement('div');
+        output.className = 'terminal-output';
+        output.innerHTML = result;
+        terminalOutput.appendChild(output);
+    }
+
+    terminalOutput.appendChild(document.createElement('br'));
+    terminalView.scrollTop = terminalView.scrollHeight;
+};
+
+const createPromptLine = (command) => {
+    const line = document.createElement('div');
+    line.className = 'prompt-line executed';
+    line.innerHTML = `
         <div class="p10k-segment os-icon"><i class="fab fa-linux"></i></div>
         <div class="p10k-arrow os-arrow"></div>
-        <div class="p10k-segment dir-icon"></div>
+        <div class="p10k-segment dir-icon"></div>
         <div class="p10k-segment dir-text">~/portfolio</div>
         <div class="p10k-arrow dir-arrow"></div>
         <div class="p10k-segment git-icon"><i class="fas fa-code-branch"></i></div>
         <div class="p10k-segment git-text">main</div>
         <div class="p10k-arrow git-arrow"></div>
         <div class="command-input">
-            <span class="cmd-text"></span>
+            <span class="input-text">${command}</span>
         </div>
     `;
-
-    // Insert prompt before the section
-    const section = document.getElementById(sectionId);
-    section.parentNode.insertBefore(promptLine, section);
-
-    // Type command
-    const cmdTextSpan = promptLine.querySelector('.cmd-text');
-    await typeText(cmdTextSpan, command, 50);
-
-    // Render Content
-    renderSection(sectionId);
+    return line;
 };
 
-const renderSection = (sectionId) => {
-    const section = document.getElementById(sectionId);
+const processCommand = async (cmd) => {
+    const parts = cmd.trim().split(' ');
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1);
 
-    if (sectionId === 'section-projects') {
-        const grid = document.createElement('div');
-        grid.className = 'projects-grid';
+    switch (command) {
+        case 'help':
+            return `<div class="help-output">
+<span class="help-header">Available Commands:</span>
 
-        projectsData.forEach(proj => {
-            const card = document.createElement('div');
-            card.className = 'project-card';
-            card.innerHTML = `
-                <div class="folder-icon"><i class="fas fa-folder"></i></div>
-                <div class="project-name">${proj.name}</div>
-                <div class="project-desc">${proj.desc}</div>
-            `;
-            card.onclick = () => {
-                if (proj.link !== '#') window.open(proj.link, '_blank');
-                toggleProject(card);
-            };
-            grid.appendChild(card);
-        });
-        section.appendChild(grid);
-    } else if (sectionId === 'section-experience') {
-        const timeline = document.createElement('div');
-        timeline.className = 'timeline';
+  <span class="cmd-name">help</span>              <span class="cmd-desc">Show this help message</span>
+  <span class="cmd-name">clear</span>             <span class="cmd-desc">Clear the terminal</span>
+  <span class="cmd-name">whoami</span>            <span class="cmd-desc">Professional summary + tech stack</span>
+  <span class="cmd-name">ls</span> <span class="cmd-arg">[dir]</span>         <span class="cmd-desc">List directory contents</span>
+  <span class="cmd-name">cat README.md</span>     <span class="cmd-desc">Project details with problem/decisions/outcome</span>
+  <span class="cmd-name">neofetch</span>          <span class="cmd-desc">ASCII art + system info</span>
+  <span class="cmd-name">wget resume.pdf</span>   <span class="cmd-desc">Download my resume</span>
+  <span class="cmd-name">journalctl -u growth</span>  <span class="cmd-desc">Learning timeline</span>
+  <span class="cmd-name">sudo hire me</span>      <span class="cmd-desc">Confetti + hiring message 🎉</span>
+  <span class="cmd-name">rm -rf /</span>          <span class="cmd-desc">Glitch effect + recovery 💥</span>
 
-        experienceData.forEach(exp => {
-            const item = document.createElement('div');
-            item.className = 'timeline-item';
-            item.innerHTML = `
-                <div class="timeline-date">${exp.date}</div>
-                <div class="timeline-title">${exp.title}</div>
-                <div class="timeline-company">${exp.company}</div>
-                <div style="color: #888; margin-top: 5px;">${exp.desc}</div>
-            `;
-            timeline.appendChild(item);
-        });
-        section.appendChild(timeline);
-    } else if (sectionId === 'section-skills') {
-        const container = document.createElement('div');
-        container.className = 'skills-container';
+<span class="help-tip">Tip: Use ↑/↓ for history, Tab for autocomplete</span>
+</div>`;
 
-        skillsData.forEach(skill => {
-            const tag = document.createElement('div');
-            tag.className = 'skill-tag';
-            tag.textContent = skill;
-            container.appendChild(tag);
-        });
-        section.appendChild(container);
-    } else if (sectionId === 'section-socials') {
-        const container = document.createElement('div');
-        container.className = 'skills-container'; // Reuse style
+        case 'clear':
+            const terminalOutput = document.getElementById('terminal-output');
+            const terminalView = document.getElementById('terminal-view');
+            terminalOutput.innerHTML = '';
+            // CRT flash effect
+            terminalView.classList.add('crt-flash');
+            setTimeout(() => terminalView.classList.remove('crt-flash'), 150);
+            return null;
 
-        socialsData.forEach(soc => {
-            const tag = document.createElement('a');
-            tag.className = 'skill-tag';
-            tag.href = soc.link;
-            tag.target = "_blank";
-            tag.style.textDecoration = 'none';
-            tag.style.display = 'inline-flex';
-            tag.style.alignItems = 'center';
-            tag.style.gap = '8px';
-            tag.innerHTML = `<i class="${soc.icon}"></i> ${soc.name}`;
-            container.appendChild(tag);
-        });
-        section.appendChild(container);
+        case 'whoami':
+            return `<div class="whoami-output">
+<span class="whoami-name">${portfolioData.profile.name}</span>
+<span class="whoami-role">${portfolioData.profile.role}</span>
+
+${portfolioData.profile.intro}
+
+<span class="whoami-section">Tech Stack:</span>
+${Object.values(portfolioData.skills).flat().map(s => `<span class="tech-tag">${s}</span>`).join(' ')}
+
+<span class="whoami-section">Currently Building:</span>
+AI-powered sports analytics for cricket coaching
+
+<span class="whoami-contact">
+<i class="fab fa-github"></i> github.com/Abhijit808
+<i class="fab fa-linkedin"></i> linkedin.com/in/abhijit-rayarao
+</span>
+</div>`;
+
+        case 'ls':
+            const dir = args[0] || '.';
+            if (dir === '.' || dir === 'projects' || dir === 'projects/') {
+                return `<div class="ls-output">
+${portfolioData.projects.map(p => `<span class="ls-dir"><i class="fas fa-folder"></i> ${p.name}</span>`).join('\n')}
+</div>`;
+            }
+            return `<span class="error">ls: cannot access '${dir}': No such directory</span>`;
+
+        case 'cat':
+            const file = args.join(' ');
+            if (file === 'README.md' || file === 'readme.md') {
+                return `<div class="readme-output">
+<span class="readme-header"># ${portfolioData.profile.name}'s Portfolio</span>
+
+${portfolioData.profile.intro}
+
+## Projects
+${portfolioData.projects.map(p => `- **${p.name}**: ${p.desc}`).join('\n')}
+
+## Contact
+${portfolioData.socials.map(s => `- ${s.name}: ${s.link}`).join('\n')}
+</div>`;
+            }
+            return `<span class="error">cat: ${file || 'missing operand'}: No such file</span>`;
+
+        case 'neofetch':
+            return `<div class="neofetch-output">
+<pre class="ascii-art">
+<span class="ascii-color-1">    █████╗ ██████╗ </span>
+<span class="ascii-color-1">   ██╔══██╗██╔══██╗</span>
+<span class="ascii-color-2">   ███████║██████╔╝</span>
+<span class="ascii-color-2">   ██╔══██║██╔══██╗</span>
+<span class="ascii-color-3">   ██║  ██║██║  ██║</span>
+<span class="ascii-color-3">   ╚═╝  ╚═╝╚═╝  ╚═╝</span>
+</pre>
+<div class="neofetch-info">
+<span class="nf-label">Name:</span> <span class="nf-value">${portfolioData.profile.name}</span>
+<span class="nf-label">Role:</span> <span class="nf-value">${portfolioData.profile.role}</span>
+<span class="nf-label">Shell:</span> <span class="nf-value">Zsh + Powerlevel10k</span>
+<span class="nf-label">Terminal:</span> <span class="nf-value">Alacritty</span>
+<span class="nf-label">Stack:</span> <span class="nf-value">NestJS • Next.js • Docker</span>
+<span class="nf-label">Focus:</span> <span class="nf-value">Data Science • ML/AI</span>
+<span class="nf-label">Uptime:</span> <span class="nf-value">${Math.floor((Date.now() - startTime) / 60000)} mins</span>
+</div>
+</div>`;
+
+        case 'wget':
+            if (args[0] === 'resume.pdf') {
+                return `<div class="wget-output">
+--2024-01-01 12:00:00--  https://abhijit.dev/resume.pdf
+Resolving abhijit.dev... done.
+Connecting to abhijit.dev|443|... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 142857 (140K) [application/pdf]
+Saving to: 'resume.pdf'
+
+resume.pdf      100%[========>] 140K  --.-KB/s    in 0.1s
+
+<span class="wget-success">'resume.pdf' saved</span>
+</div>`;
+            }
+            return `<span class="error">wget: missing URL</span>`;
+
+        case 'journalctl':
+            if (args.join(' ') === '-u growth') {
+                return `<div class="journal-output">
+<span class="journal-header">-- Growth journal entries --</span>
+
+<div class="journal-entry">
+<span class="journal-date">2024-01</span>
+<span class="journal-tag learned">LEARNED</span> Computer Vision for sports analytics
+</div>
+
+<div class="journal-entry">
+<span class="journal-date">2023-06</span>
+<span class="journal-tag built">BUILT</span> First production Next.js application
+</div>
+
+<div class="journal-entry">
+<span class="journal-date">2022-09</span>
+<span class="journal-tag started">STARTED</span> Full-stack development with MERN
+</div>
+
+<span class="journal-footer">-- End of journal --</span>
+</div>`;
+            }
+            return `<span class="error">journalctl: invalid option</span>`;
+
+        case 'sudo':
+            if (args.join(' ') === 'hire me') {
+                // Trigger confetti
+                triggerConfetti();
+                return `<div class="hire-me-output">
+<span class="hire-header">🎉 sudo: hire successful!</span>
+
+<span class="hire-text">Thanks for considering me!</span>
+
+<span class="hire-success">✓ Available for full-time opportunities</span>
+<span class="hire-success">✓ Open to interesting projects</span>
+<span class="hire-success">✓ Remote-friendly</span>
+
+<span class="hire-cta">📧 Let's connect: <a href="mailto:abhijit@example.com">abhijit@example.com</a></span>
+</div>`;
+            }
+            return `<span class="error">[sudo] password for abhijit:</span>`;
+
+        case 'rm':
+            if (args[0] === '-rf' && args[1] === '/') {
+                // Glitch effect
+                triggerGlitch();
+                await sleep(1000);
+                return `<div class="recovery-output">
+<span class="recovery-header">⚠️ System Recovery Mode</span>
+Just kidding! This is a safe portfolio environment.
+<span class="recovery-hint">Try 'help' for actual commands.</span>
+</div>`;
+            }
+            return `<span class="error">rm: missing operand</span>`;
+
+        default:
+            return `<span class="error">zsh: command not found: ${command}</span>
+<span style="color: #666">Type 'help' for available commands</span>`;
     }
 };
 
-const toggleProject = (card) => {
-    // Simple expand animation
-    if (card.style.height === 'auto') {
-        card.style.height = '';
-        card.querySelector('.folder-icon i').className = 'fas fa-folder';
-    } else {
-        // Reset others? Maybe not.
-        card.style.height = 'auto';
-        card.querySelector('.folder-icon i').className = 'fas fa-folder-open';
-        // Add more details if needed
+// ========================================
+// EFFECTS
+// ========================================
+const triggerConfetti = () => {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    document.body.appendChild(container);
+
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.backgroundColor = ['#b5bd68', '#f0c674', '#81a2be', '#b294bb', '#8abeb7'][Math.floor(Math.random() * 5)];
+        container.appendChild(confetti);
+    }
+
+    setTimeout(() => container.remove(), 5000);
+};
+
+const triggerGlitch = () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'glitch-overlay';
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 500);
+};
+
+// ========================================
+// STATUS BAR
+// ========================================
+const updateStatusBar = () => {
+    const cpuStat = document.getElementById('cpu-stat');
+    const memStat = document.getElementById('mem-stat');
+    const uptimeStat = document.getElementById('uptime-stat');
+    const promptCpu = document.getElementById('prompt-cpu');
+    const promptUptime = document.getElementById('prompt-uptime');
+
+    const cpu = 8 + Math.floor(Math.random() * 15);
+    const cpuText = cpu + '%';
+
+    if (cpuStat) cpuStat.textContent = cpuText;
+    if (promptCpu) promptCpu.textContent = cpuText;
+
+    if (memStat) {
+        const mem = (1.8 + Math.random() * 0.8).toFixed(1);
+        memStat.textContent = mem + 'G';
+    }
+
+    const mins = Math.floor((Date.now() - startTime) / 60000);
+    const hrs = Math.floor(mins / 60);
+    const uptimeText = hrs > 0 ? `${hrs}:${(mins % 60).toString().padStart(2, '0')}` : `0:${mins.toString().padStart(2, '0')}`;
+
+    if (uptimeStat) uptimeStat.textContent = uptimeText;
+    if (promptUptime) promptUptime.textContent = uptimeText;
+};
+
+// ========================================
+// CLOCK
+// ========================================
+const updateClock = () => {
+    const clock = document.getElementById('clock');
+    if (clock) {
+        const now = new Date();
+        clock.textContent = now.toLocaleTimeString('en-US', { hour12: false });
     }
 };
 
-// Intersection Observer
-const observerOptions = {
-    root: document.getElementById('terminal'), // Observe within terminal
-    threshold: 0.1
-};
+// ========================================
+// THEME TOGGLE
+// ========================================
+const initThemeToggle = () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const trigger = entry.target;
-            const command = trigger.dataset.command;
-            const sectionId = trigger.id.replace('trigger-', 'section-');
-
-            // Execute only once
-            observer.unobserve(trigger);
-            executeCommand(command, sectionId, trigger);
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const icon = themeToggle.querySelector('i');
+        if (document.body.classList.contains('light-theme')) {
+            icon.className = 'fas fa-moon';
+        } else {
+            icon.className = 'fas fa-sun';
         }
     });
-}, observerOptions);
-
-// Start observing after intro
-const startObserving = () => {
-    document.querySelectorAll('.section-trigger').forEach(el => observer.observe(el));
 };
 
-// Theme Toggle
-const themeToggle = document.getElementById('theme-toggle');
-const body = document.body;
-const icon = themeToggle.querySelector('i');
-
-themeToggle.addEventListener('click', () => {
-    body.classList.toggle('light-theme');
-    if (body.classList.contains('light-theme')) {
-        icon.className = 'fas fa-moon';
-    } else {
-        icon.className = 'fas fa-sun';
-    }
-});
-
-// Spark Effect
+// ========================================
+// SPARK EFFECT
+// ========================================
 const createSpark = (e) => {
+    const target = e.target.closest('.project-card, .skill-tag, .shutdown-btn, .static-card, .contact-card');
+    if (!target) return;
+
     const spark = document.createElement('div');
     spark.className = 'spark';
     spark.textContent = ['+', '*', '.', 'x'][Math.floor(Math.random() * 4)];
 
-    const rect = e.target.getBoundingClientRect();
+    const rect = target.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     spark.style.left = `${x}px`;
     spark.style.top = `${y}px`;
 
-    // Random direction
     const angle = Math.random() * Math.PI * 2;
     const velocity = 20 + Math.random() * 30;
-    const tx = Math.cos(angle) * velocity;
-    const ty = Math.sin(angle) * velocity;
+    spark.style.setProperty('--tx', `${Math.cos(angle) * velocity}px`);
+    spark.style.setProperty('--ty', `${Math.sin(angle) * velocity}px`);
 
-    spark.style.setProperty('--tx', `${tx}px`);
-    spark.style.setProperty('--ty', `${ty}px`);
-
-    e.target.appendChild(spark);
-
-    setTimeout(() => {
-        spark.remove();
-    }, 800);
+    target.appendChild(spark);
+    setTimeout(() => spark.remove(), 800);
 };
 
-// Attach spark effect to interactive elements
-document.addEventListener('mouseover', (e) => {
-    if (e.target.closest('.project-card') || e.target.closest('.skill-tag') || e.target.closest('.shutdown-btn')) {
-        const target = e.target.closest('.project-card') || e.target.closest('.skill-tag') || e.target.closest('.shutdown-btn');
-        // Only add listener once? Or just use mousemove on container?
-        // Let's use mousemove on the element itself
-        target.onmousemove = (evt) => {
-            if (Math.random() > 0.8) createSpark(evt); // Throttling
+const initSparkEffects = () => {
+    document.addEventListener('mousemove', (e) => {
+        if (e.target.closest('.project-card, .skill-tag, .shutdown-btn, .static-card, .contact-card')) {
+            if (Math.random() > 0.85) createSpark(e);
+        }
+    });
+};
+
+// ========================================
+// SHUTDOWN
+// ========================================
+const initShutdown = () => {
+    const shutdownBtns = document.querySelectorAll('.shutdown-btn');
+
+    shutdownBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const alacrittyWindow = document.querySelector('.alacritty-window');
+            const container = btn.closest('.terminal-content, .static-content');
+
+            if (container) {
+                container.innerHTML = '<div class="log-line">Stopping User Manager...</div>';
+                await sleep(400);
+                container.innerHTML += '<div class="log-line">Stopping Graphical Interface...</div>';
+                await sleep(400);
+                container.innerHTML += '<div class="log-line">Unmounting filesystems...</div>';
+                await sleep(400);
+                container.innerHTML += '<div class="log-line">System halting.</div>';
+            }
+
+            await sleep(1000);
+
+            alacrittyWindow.style.opacity = '0';
+            alacrittyWindow.style.transform = 'scale(0.9)';
+            alacrittyWindow.style.transition = 'all 0.5s ease';
+
+            await sleep(500);
+            document.body.style.backgroundColor = '#000';
+            document.querySelector('.crt-overlay').style.display = 'none';
+        });
+    });
+};
+
+// ========================================
+// POPULATE STATIC VIEW FROM DATA
+// ========================================
+const populateStaticView = () => {
+    if (!portfolioData) return;
+
+    // Update intro/hero
+    const heroName = document.querySelector('.intro-greeting .hero-name');
+    const heroRole = document.querySelector('.intro-stack');
+
+    if (heroName) heroName.textContent = portfolioData.profile.name.toLowerCase();
+    if (heroRole) {
+        // Build tech stack from skills
+        const techStack = [
+            portfolioData.profile.role?.split(' ')[0]?.toLowerCase() || 'developer',
+            ...(portfolioData.skills.frameworks?.slice(0, 3) || []),
+            ...(portfolioData.skills.databases?.slice(0, 1) || []),
+            ...(portfolioData.skills.ml_data?.slice(0, 1) || [])
+        ].join(' • ');
+        heroRole.textContent = techStack;
+    }
+
+    // Update projects
+    const projectsGrid = document.getElementById('static-projects');
+    if (projectsGrid && portfolioData.projects.length) {
+        projectsGrid.innerHTML = portfolioData.projects.map(p => `
+            <article class="project-card static-card">
+                <div class="card-header">
+                    <i class="fas fa-folder folder-icon"></i>
+                    <h3 class="project-name">${p.name}</h3>
+                </div>
+                <p class="project-desc">${p.desc}</p>
+                <div class="project-tech">
+                    ${p.tech.map(t => `<span class="tech-tag">${t}</span>`).join('')}
+                </div>
+                <div class="project-links">
+                    <a href="${p.link}" target="_blank" class="project-link">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                </div>
+            </article>
+        `).join('');
+    }
+
+    // Update experience
+    const timeline = document.querySelector('#static-experience .timeline');
+    if (timeline && portfolioData.experience.length) {
+        timeline.innerHTML = portfolioData.experience.map(e => `
+            <article class="timeline-item">
+                <div class="timeline-date">${e.date}</div>
+                <h3 class="timeline-title">${e.title}</h3>
+                <div class="timeline-company">${e.company}</div>
+                <p class="timeline-desc">${e.highlights ? e.highlights.slice(0, 2).join(' ') : e.desc}</p>
+            </article>
+        `).join('');
+    }
+
+    // Update skills
+    const skillsGrid = document.querySelector('#static-skills .skills-grid');
+    if (skillsGrid && portfolioData.skills) {
+        const skillCategories = {
+            'Languages': portfolioData.skills.languages || [],
+            'Frameworks': portfolioData.skills.frameworks || [],
+            'Databases': portfolioData.skills.databases || [],
+            'Dev Tools': portfolioData.skills.devtools || [],
+            'System Design': portfolioData.skills.system_design || [],
+            'ML/Data': portfolioData.skills.ml_data || []
         };
+
+        skillsGrid.innerHTML = Object.entries(skillCategories)
+            .filter(([_, skills]) => skills.length > 0)
+            .map(([category, skills]) => `
+                <div class="skill-category">
+                    <h3 class="skill-category-title">${category}</h3>
+                    <div class="skills-container">
+                        ${skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    // Update contact/socials
+    const contactGrid = document.querySelector('#static-contact .contact-grid');
+    if (contactGrid && portfolioData.socials.length) {
+        contactGrid.innerHTML = portfolioData.socials.map(s => `
+            <a href="${s.link}" target="_blank" class="contact-card">
+                <i class="${s.icon}"></i>
+                <span>${s.name}</span>
+            </a>
+        `).join('');
+    }
+};
+
+// ========================================
+// INITIALIZATION
+// ========================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load data first
+    await loadPortfolioData();
+
+    // Populate static view with data
+    populateStaticView();
+
+    // Start clock
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Start status bar updates
+    setInterval(updateStatusBar, 2000);
+    updateStatusBar();
+
+    // Initialize features
+    initThemeToggle();
+    initSparkEffects();
+    initShutdown();
+});
+
+// Listen for terminal boot event from mode controller
+// This runs AFTER the global boot sequence completes
+document.addEventListener('startTerminalBoot', async () => {
+    await runTerminalIntro();
+    initTerminalInput();
+});
+
+// Listen for static intro event - animate the name/role
+document.addEventListener('startStaticIntro', async () => {
+    const heroName = document.querySelector('.intro-greeting .hero-name');
+    const heroRole = document.querySelector('.intro-stack');
+
+    if (!heroName || !heroRole || !portfolioData) return;
+
+    // Store full text
+    const fullName = portfolioData.profile.name.toLowerCase();
+    const techStack = [
+        portfolioData.profile.role?.split(' ')[0]?.toLowerCase() || 'developer',
+        ...(portfolioData.skills?.frameworks?.slice(0, 3) || []),
+        ...(portfolioData.skills?.databases?.slice(0, 1) || []),
+        ...(portfolioData.skills?.ml_data?.slice(0, 1) || [])
+    ].join(' • ');
+
+    // Clear and type name
+    heroName.textContent = '';
+    heroRole.textContent = '';
+
+    for (let i = 0; i < fullName.length; i++) {
+        heroName.textContent += fullName[i];
+        await sleep(50);
+    }
+
+    await sleep(300);
+
+    // Type role
+    for (let i = 0; i < techStack.length; i++) {
+        heroRole.textContent += techStack[i];
+        await sleep(20);
     }
 });
 
-// Shutdown Logic
-const shutdownBtn = document.getElementById('shutdown-btn');
-shutdownBtn.addEventListener('click', async () => {
-    const terminalContent = document.getElementById('terminal');
-    terminalContent.innerHTML = ''; // Clear everything
+// Make data available globally
+window.portfolioData = portfolioData;
+window.loadPortfolioData = loadPortfolioData;
 
-    const shutdownLogs = [
-        "Stopping User Manager...",
-        "Stopping Graphical Interface...",
-        "Unmounting /home/painfulpike/portfolio...",
-        "System halting."
-    ];
-
-    for (const log of shutdownLogs) {
-        const p = document.createElement('div');
-        p.className = 'log-line';
-        p.textContent = log;
-        terminalContent.appendChild(p);
-        await new Promise(r => setTimeout(r, 400));
-    }
-
-    await new Promise(r => setTimeout(r, 1000));
-
-    // Turn off
-    document.querySelector('.alacritty-window').style.opacity = '0';
-    document.querySelector('.alacritty-window').style.transform = 'scale(0.9)';
-    document.querySelector('.alacritty-window').style.transition = 'all 0.5s ease';
-
-    setTimeout(() => {
-        document.body.style.backgroundColor = '#000';
-        document.querySelector('.crt-overlay').style.display = 'none';
-    }, 500);
-});
